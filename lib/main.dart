@@ -7,7 +7,6 @@ import 'package:google_ml_kit/google_ml_kit.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
   final cameras = await availableCameras();
   final firstCamera = cameras.first;
 
@@ -89,24 +88,31 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
+      double calculateAspectRatio(CameraValue value) {
+      return 1 / value.aspectRatio;
+    }
+
+    final size = MediaQuery.of(context).size;
+    final aspectRatio = size.width / size.height;
     // ignore: prefer_const_constructors
     return Scaffold(
-      appBar: AppBar(title: const Text('Take a picture')),
       // ignore: prefer_const_constructors
       body: FutureBuilder<void>(
         future: _initializeControllerFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.done) {
             return AspectRatio(
-              aspectRatio: 9/16,
-              child: CameraPreview(controller)
+              aspectRatio: aspectRatio,
+              child: CameraPreview(controller),
             );
           } else {
             return const Center(child: CircularProgressIndicator());
           }
         }
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 30.0),
+        child: FloatingActionButton(
         onPressed: () async {
           try {
             await _initializeControllerFuture;
@@ -122,8 +128,9 @@ class _MyAppState extends State<MyApp> {
             print(e);
           }
         },
-        child: const Icon(Icons.camera_alt),
-      )
+        child: const Icon(Icons.camera),
+      )),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat
     );
   }
 }
@@ -137,8 +144,6 @@ class DisplayPictureScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Display the Picture')),
-      // The image is stored as a file on the device. Use the `Image.file`
-      // constructor with the given path to display the image.
       body: Image.file(File(imagePath)),
     );
   }
