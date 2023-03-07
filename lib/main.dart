@@ -1,29 +1,33 @@
 // ignore_for_file: avoid_print
-// import 'dart:ffi';
-// import 'dart:html';
-// import 'dart:io';
-// import 'dart:typed_data';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 // import 'package:google_ml_kit/google_ml_kit.dart';
 
-late List<CameraDescription> _cameras;
-
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  _cameras = await availableCameras();
+  final cameras = await availableCameras();
+  final firstCamera = cameras.first;
+
   runApp(
     MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark(),
-      home: const MyApp(),
-    )
+      home: MyApp(
+        camera: firstCamera
+        ),
+    ),
   );
 }
 
 class MyApp extends StatefulWidget {
-  const MyApp({super.key});
+  const MyApp({
+    super.key,
+    required this.camera
+  });
+
+  final CameraDescription camera;
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -36,7 +40,8 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    controller = CameraController(_cameras[0], ResolutionPreset.max);
+    controller = CameraController(widget.camera, ResolutionPreset.max);
+    /*
     controller.initialize().then((_) {
       if (!mounted) {
         return;
@@ -53,6 +58,7 @@ class _MyAppState extends State<MyApp> {
       }
     }
     );
+    */
     _initializeControllerFuture = controller.initialize();
   }
 
@@ -64,11 +70,9 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    if (!controller.value.isInitialized) {
-      return Container();
-    }
     // ignore: prefer_const_constructors
     return Scaffold(
+      appBar: AppBar(title: const Text('Take a picture')),
       // ignore: prefer_const_constructors
       body: FutureBuilder<void>(
         future: _initializeControllerFuture,
@@ -89,14 +93,31 @@ class _MyAppState extends State<MyApp> {
 
             await Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (context) => const Placeholder()
+                builder: (context) => DisplayPictureScreen(imagePath: image.path),
               )
             );
           } catch (e) {
             print(e);
           }
         },
+        child: const Icon(Icons.camera_alt),
       )
+    );
+  }
+}
+
+class DisplayPictureScreen extends StatelessWidget {
+  final String imagePath;
+
+  const DisplayPictureScreen({super.key, required this.imagePath});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Display the Picture')),
+      // The image is stored as a file on the device. Use the `Image.file`
+      // constructor with the given path to display the image.
+      body: Image.file(File(imagePath)),
     );
   }
 }
