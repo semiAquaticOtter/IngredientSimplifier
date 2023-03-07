@@ -1,10 +1,11 @@
 // ignore_for_file: avoid_print
-import 'dart:html';
-import 'dart:io';
-import 'dart:typed_data';
+// import 'dart:ffi';
+// import 'dart:html';
+// import 'dart:io';
+// import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
-import 'package:google_ml_kit/google_ml_kit.dart';
+// import 'package:google_ml_kit/google_ml_kit.dart';
 
 late List<CameraDescription> _cameras;
 
@@ -12,7 +13,13 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   _cameras = await availableCameras();
-  runApp(const MyApp());
+  runApp(
+    MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData.dark(),
+      home: const MyApp(),
+    )
+  );
 }
 
 class MyApp extends StatefulWidget {
@@ -24,6 +31,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   late CameraController controller;
+  late Future<void> _initializeControllerFuture;
 
   @override
   void initState() {
@@ -45,6 +53,7 @@ class _MyAppState extends State<MyApp> {
       }
     }
     );
+    _initializeControllerFuture = controller.initialize();
   }
 
   @override
@@ -59,106 +68,35 @@ class _MyAppState extends State<MyApp> {
       return Container();
     }
     // ignore: prefer_const_constructors
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      // ignore: prefer_const_constructors
-      home: TestWidget(),
-    );
-  }
-}
-
-class TestWidget extends StatelessWidget {
-  const TestWidget({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      body: FutureBuilder<void>(
-        builder: builder
-      ),
-    );
-  }
-}
-
-
-/*
-import 'package:flutter/material.dart';
-
-// my imports
-import 'package:camera/camera.dart';
-
-List<CameraDescription> cameras = []  ;
-
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  try {
-    cameras = await availableCameras();
-  } on CameraException catch (e) {
-    print("exception:----");
-    print(e.code);  
-    print(e.description);
-    print('--------------');
-  }
-  runApp(MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'My App',
-      home: TakePictureScreen(
-        camera: cameras.first,
-      ),
-    );
-  }
-}
-
-class TakePictureScreen extends StatefulWidget {
-  final CameraDescription camera;
-
-  const TakePictureScreen({Key? key, required this.camera}) : super(key: key);
-
-  @override
-  TakePictureScreenState createState() => TakePictureScreenState();
-}
-
-class TakePictureScreenState extends State<TakePictureScreen> {
-  late CameraController _controller;
-  late Future<void> _initializeControllerFuture;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = CameraController(
-      widget.camera,
-      ResolutionPreset.medium,
-    );
-    _initializeControllerFuture = _controller.initialize();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Take a picture')),
-      body: Center(
-        child: CameraPreview(_controller),
+      // ignore: prefer_const_constructors
+      body: FutureBuilder<void>(
+        future: _initializeControllerFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.done) {
+            return CameraPreview(controller);
+          } else {
+            return const Center(child: CircularProgressIndicator());
+          }
+        }
       ),
-      floatingActionButton: FloatingActionButton (
-        onPressed: () {
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          try {
+            await _initializeControllerFuture;
+            final image = await controller.takePicture();
+            if (!mounted) return;
 
+            await Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const Placeholder()
+              )
+            );
+          } catch (e) {
+            print(e);
+          }
         },
-        child: Icon(Icons.camera),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      )
     );
   }
 }
-
-*/
