@@ -2,7 +2,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
-// import 'package:google_ml_kit/google_ml_kit.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:google_ml_kit/google_ml_kit.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -34,38 +35,56 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
+
   late CameraController controller;
-  late Future<void> _initializeControllerFuture;
+  late Future<void> _initializeControllerFuture = checkPermission();
+  bool isRequestingPermission = false;
 
   @override
   void initState() {
     super.initState();
-    controller = CameraController(widget.camera, ResolutionPreset.max);
-    /*
-    controller.initialize().then((_) {
-      if (!mounted) {
-        return;
-      }
-      setState(() {});
-    }).catchError((Object e) {
-      if (e is CameraException) {
-        switch (e.code) {
-          case 'CameraAccessDenied':
-            break;
-          default:
-            break;
-        }
-      }
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      checkPermission();
+    });
+  }
+
+  Future<void> checkPermission() async {
+    print('checking permissions');
+    if (isRequestingPermission) {
+      return;
     }
-    );
+    isRequestingPermission = true;
+
+    try {
+      final permissionStatus = await Permission.camera.request();
+      if (permissionStatus.isGranted) {
+        controller = CameraController(widget.camera, ResolutionPreset.max);
+        _initializeControllerFuture = controller.initialize(); 
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Camera permission is required')),
+        );
+      }
+    } finally {
+      isRequestingPermission = false;
+    }
+    /*
+    final permissionStatus = await Permission.camera.request();
+    if (permissionStatus.isGranted) {
+      controller = CameraController(widget.camera, ResolutionPreset.max);
+      _initializeControllerFuture = controller.initialize();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Camera permission is required')),
+      );
+    }
     */
-    _initializeControllerFuture = controller.initialize();
   }
 
   @override
   void dispose() {
-    controller.dispose();
     super.dispose();
+    controller.dispose();
   }
 
   @override
@@ -78,7 +97,10 @@ class _MyAppState extends State<MyApp> {
         future: _initializeControllerFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.done) {
-            return CameraPreview(controller);
+            return AspectRatio(
+              aspectRatio: 9/16,
+              child: CameraPreview(controller)
+            );
           } else {
             return const Center(child: CircularProgressIndicator());
           }
