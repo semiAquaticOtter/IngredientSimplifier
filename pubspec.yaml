@@ -28,6 +28,7 @@ environment:
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependencies:
+  flutter_keychain: ^2.2.1
   permission_handler: ^10.2.0
   image_cropper:
   google_mlkit_text_recognition: ^0.4.0
